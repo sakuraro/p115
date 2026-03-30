@@ -4,4 +4,4 @@ cd ../../
 source .venv/bin/activate
 python -m pip uninstall p115
 deactivate
-rm -rf .venv
+rm -rf .venv data
