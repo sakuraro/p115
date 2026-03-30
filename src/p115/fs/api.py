@@ -1,7 +1,7 @@
 from p115.utils.log import *
 from p115.utils.file import *
 
-from p115.utils.base import base_request
+from p115.utils.net import base_request
 from p115.auth.controller import with_authorized
 
 

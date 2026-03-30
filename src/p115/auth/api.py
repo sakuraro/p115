@@ -1,4 +1,4 @@
-from p115.utils.base import base_request
+from p115.utils.net import base_request
 
 
 def auth_device_code(app_id, code_challenge, code_challenge_method):

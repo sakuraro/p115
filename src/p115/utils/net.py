@@ -9,7 +9,7 @@ def base_request(method: str, url: str, **kwargs):
         try:
             fcntl.flock(f, fcntl.LOCK_EX)
             resp = requests.request(method=method, url=url, **kwargs)
-            time.sleep(1)
+            # time.sleep(1)
             try:
                 data = resp.json()
             except ValueError:
