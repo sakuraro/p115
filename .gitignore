@@ -1,0 +1,8 @@
+.venv/
+build/
+__pycache__/
+src/p115.egg-info
+
+.vscode/
+.cache/
+data/
