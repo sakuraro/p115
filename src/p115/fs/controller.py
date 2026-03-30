@@ -23,7 +23,7 @@ def ls(pid, **kwargs):
 def existed(remote_path, **kwargs):
     data = fold_get_info_by_path(remote_path)
     # 目录已存在
-    if data.get('code') == 0 and data.get('state') == True:
+    if data.get('code') == 0 and data.get('state') == True and data.get('data') != []:
         ufile_id = data.get('data', {}).get('file_id')
     # 目录不存在
     else:
