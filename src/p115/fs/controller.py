@@ -23,7 +23,7 @@ def ls(pid, **kwargs):
 def existed(remote_path, **kwargs):
     data = fold_get_info_by_path(remote_path)
     # 目录已存在
-    if data.get('code') == 0 and data.get('state') == True and data.get('data') != []:
+    if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
         ufile_id = data.get('data', {}).get('file_id')
     # 目录不存在
     else:
@@ -60,14 +60,16 @@ def mkdir_iter(remote_path, **kwargs):
 
 
 def upload_file(local_file, pid, **kwargs):
-    target = 'U_1_' + pid
-    file_name = get_name(local_file)
-    file_size = get_size(local_file)
-    file_hash = calc_hash(local_file)
-
     try:
+        if not pid:
+            raise ValueError(f'upload_file params: {local_file} {pid}')
+        target = 'U_1_' + pid
+        file_name = get_name(local_file)
+        file_size = get_size(local_file)
+        file_hash = calc_hash(local_file)
+
         data = upload_init(file_name, file_size, target, file_hash)
-        if data.get('code') != 0 and data.get('state') != True and data.get('data') == []:
+        if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
             raise ValueError(f'{data}')
         if data.get('data', {}).get('code') == 701 and data.get('data', {}).get('status') == 7:
             sign_key = data.get('data',{}).get('sign_key')
@@ -77,14 +79,14 @@ def upload_file(local_file, pid, **kwargs):
             data = upload_init(
                 file_name, file_size, target, file_hash, files={'sign_key':(None,sign_key),'sign_val':(None,sign_val)}
             )
-            if data.get('code') != 0 and data.get('state') != True and data.get('data') == []:
+            if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
                 raise ValueError(f'{data}')
             if data.get('data', {}).get('status') == 2:
                 log_info('秒传成功')
             else:
                 log_info('无法秒传')
                 data = upload_get_token()
-                if data.get('code') != 0 and data.get('state') != True and data.get('data') == []:
+                if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
                     raise ValueError(f'{data}')
                 endpoint = data.get('data', {}).get('endpoint')
                 access_key_id = data.get('data', {}).get('AccessKeyId')
@@ -92,7 +94,7 @@ def upload_file(local_file, pid, **kwargs):
                 security_token = data.get('data', {}).get('SecurityToken')
                 expiration = data.get('data', {}).get('Expiration')
                 # 对象存储上传
-    except ValueError as e:
+    except Exception as e:
         log_error(e)
 
 
@@ -110,23 +112,24 @@ def upload_file_iter(local_file, remote_path, **kwargs):
 
 
 def upload_recursive(local_path, pid, **kwargs):
-    p = Path(local_path)
-    # 文件（夹）不存在
-    if not p.exists():
-        log_error("文件（夹）不存在")
-        ufile_id = None
-    # 上传文件夹
-    elif p.is_dir():
-        ufile_id = mkdir(pid, Path(local_path).name)
-        ufiles = ls(ufile_id)
-        for lpath in Path(local_path).iterdir():
-            if (lpath.is_file() and [ufile for ufile in ufiles if ufile.get('fc') == '1' and ufile.get('sha1') == calc_hash(str(lpath))] != []):
-                pass
-            else:
-                upload_recursive(str(lpath), ufile_id)
-    # 上传文件
-    elif p.is_file():
-        ufile_id = upload_file(local_path, pid)
-    # 文件（夹）不存在
+    try:
+        p = Path(local_path)
+        # if path doesn't exist locally or pid is None
+        if not p.exists() or not pid:
+            ufile_id = None
+            raise ValueError(f'upload_recursive params: {local_path} {pid}')
+        # if path points to folder locally
+        elif p.is_dir():
+            ufile_id = mkdir(pid, p.name)
+            ufiles = ls(ufile_id)
+            for lpath in p.iterdir():
+                # except the file in the folder exist remotely
+                if not (lpath.is_file() and [ufile for ufile in ufiles if ufile.get('fc') == '1' and ufile.get('sha1') == calc_hash(str(lpath))] != []):
+                    upload_recursive(str(lpath), ufile_id)
+        # if path points to file locally
+        elif p.is_file():
+            ufile_id = upload_file(local_path, pid)
+    except Exception as e:
+        log_error(e)
 
     return ufile_id
