@@ -1,8 +1,10 @@
-.vscode/
+/.vscode/
+/.venv/
+/build/
+/data/
 
-.venv/
-build/
 __pycache__/
-src/p115.egg-info
 
-data
+*.log
+*.tmp
+*.egg-info
