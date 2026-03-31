@@ -65,8 +65,10 @@ def upload_file(local_file, pid, **kwargs):
     file_size = get_size(local_file)
     file_hash = calc_hash(local_file)
 
-    data = upload_init(file_name, file_size, target, file_hash)
-    if data.get('code') == 0 and data.get('state') == True:
+    try:
+        data = upload_init(file_name, file_size, target, file_hash)
+        if data.get('code') == 0 and data.get('state') == True and data.get('data') != []:
+            raise ValueError(f'{data}')
         if data.get('data', {}).get('code') == 701 and data.get('data', {}).get('status') == 7:
             sign_key = data.get('data',{}).get('sign_key')
             start, stop = data.get('data',{}).get('sign_check','0-0').split('-')
@@ -75,18 +77,23 @@ def upload_file(local_file, pid, **kwargs):
             data = upload_init(
                 file_name, file_size, target, file_hash, files={'sign_key':(None,sign_key),'sign_val':(None,sign_val)}
             )
+            if data.get('code') == 0 and data.get('state') == True and data.get('data') != []:
+                raise ValueError(f'{data}')
             if data.get('data', {}).get('status') == 2:
                 log_info('秒传成功')
             else:
                 log_info('无法秒传')
                 data = upload_get_token()
-                if data.get('code') == 0 and data.get('state') == True:
-                    endpoint = data.get('data', {}).get('endpoint')
-                    access_key_id = data.get('data', {}).get('AccessKeyId')
-                    access_key_secret = data.get('data', {}).get('AccessKeySecret')
-                    security_token = data.get('data', {}).get('SecurityToken')
-                    expiration = data.get('data', {}).get('Expiration')
-                    # 对象存储上传
+                if data.get('code') == 0 and data.get('state') == True and data.get('data') != []:
+                    raise ValueError(f'{data}')
+                endpoint = data.get('data', {}).get('endpoint')
+                access_key_id = data.get('data', {}).get('AccessKeyId')
+                access_key_secret = data.get('data', {}).get('AccessKeySecret')
+                security_token = data.get('data', {}).get('SecurityToken')
+                expiration = data.get('data', {}).get('Expiration')
+                # 对象存储上传
+    except ValueError as e:
+        log_error(e)
 
 
 def upload_file_iter(local_file, remote_path, **kwargs):
