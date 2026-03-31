@@ -1,7 +1,7 @@
 import fcntl
 import requests
 import time
-from .log import *
+from .log import log_info
 
 
 def base_request(method: str, url: str, **kwargs):

@@ -6,7 +6,6 @@ from pathlib import Path
 
 from .api import auth_device_code, get_qrcode_status, device_code_to_token, refresh_access_token
 from p115.utils.crypto import gen_code_verifier_and_challenge
-from p115.utils.log import *
 
 
 def load_login_info(cache_file=None):

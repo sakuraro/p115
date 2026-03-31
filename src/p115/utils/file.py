@@ -1,8 +1,6 @@
 import hashlib
 from pathlib import Path
 
-from p115.utils.log import *
-
 
 def get_name(file_path):
     return Path(file_path).name
