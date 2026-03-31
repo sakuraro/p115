@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from p115.utils.log import log_info
+from p115.utils.log import log_info, log_error
 from p115.utils.file import get_name, get_size, calc_hash, calc_header_hash
 from .api import ufile_list, fold_get_info_by_path, fold_add, upload_init, upload_get_token
 
