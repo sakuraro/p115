@@ -116,7 +116,6 @@ def upload_recursive(local_path, pid, **kwargs):
         p = Path(local_path)
         # if path doesn't exist locally or pid is None
         if not p.exists() or not pid:
-            ufile_id = None
             raise ValueError(f'upload_recursive params: {local_path} {pid}')
         # if path points to folder locally
         elif p.is_dir():
@@ -130,6 +129,7 @@ def upload_recursive(local_path, pid, **kwargs):
         elif p.is_file():
             ufile_id = upload_file(local_path, pid)
     except Exception as e:
+        ufile_id = None
         log_error(e)
 
     return ufile_id
