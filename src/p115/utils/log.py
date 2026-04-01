@@ -1,6 +1,7 @@
 import logging
 import traceback
 import sys
+import inspect
 from functools import wraps
 
 
@@ -25,14 +26,29 @@ def log_error(msg):
     logging.error(msg)
 
 
-def log_decorator(func):
+def log_caller(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            log_debug(f'Function name: {func.__name__}')
-            log_debug(f'Function {func.__name__} params: args={args} kwargs={kwargs}')
+            frame = inspect.stack()[1]
+            caller_name = frame.function
+            caller_filename = frame.filename
+            caller_lineno = frame.lineno
+
+            args_str = [str(a) for a in args]
+            kwargs_str = [f"{k}={v}" for k, v in kwargs.items()]
+            all_args = ", ".join(args_str + kwargs_str)
+
+            log_debug(
+                f'函数 {func.__name__} 被调用.\n'
+                f'\t调用方: {caller_name} (文件: {caller_filename}, 行号: {caller_lineno})\n'
+                f'\t参数: {all_args}'
+            )
             result = func(*args, **kwargs)
-            log_debug(f'Function {func.__name__} result: {result}')
+            log_debug(
+                f'函数 {func.__name__} 被调用完成.\n'
+                f'\t返回: {result}'
+            )
             return result
         except Exception as e:
             exec_type, exec_value, exec_traceback = sys.exc_info()

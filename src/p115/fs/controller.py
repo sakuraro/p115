@@ -1,10 +1,11 @@
 from pathlib import Path
 
-from p115.utils.log import log_info, log_error
+from p115.utils.log import log_info, log_error, log_caller
 from p115.utils.file import get_name, get_size, calc_hash, calc_header_hash
 from .api import ufile_list, fold_get_info_by_path, fold_add, upload_init, upload_get_token
 
 
+@log_caller
 def ls(pid, **kwargs):
     data = ufile_list(params={'cid': pid, 'cur': 1, 'show_dir': 1, 'offset': 0, 'limit': 100})
     ufiles = []
@@ -20,18 +21,21 @@ def ls(pid, **kwargs):
     return ufiles
 
 
+@log_caller
 def existed(remote_path, **kwargs):
-    data = fold_get_info_by_path(remote_path)
-    # 目录已存在
-    if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
+    try:
+        data = fold_get_info_by_path(remote_path)
+        # fold or file dosen't exist remotely
+        if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
+            raise ValueError(f'{data}')
         ufile_id = data.get('data', {}).get('file_id')
-    # 目录不存在
-    else:
+    except Exception as e:
         ufile_id = None
 
     return ufile_id
 
 
+@log_caller
 def mkdir(pid, name, **kwargs):
     ufile_id = None
     data = fold_add(pid, file_name=name, **kwargs)
@@ -47,6 +51,7 @@ def mkdir(pid, name, **kwargs):
     return ufile_id
 
 
+@log_caller
 def mkdir_iter(remote_path, **kwargs):
     if Path(remote_path) == Path('/'):
         return '0'
@@ -59,6 +64,7 @@ def mkdir_iter(remote_path, **kwargs):
     return ufile_id
 
 
+@log_caller
 def upload_file(local_file, pid, **kwargs):
     try:
         if not pid:
@@ -71,6 +77,7 @@ def upload_file(local_file, pid, **kwargs):
         data = upload_init(file_name, file_size, target, file_hash)
         if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
             raise ValueError(f'{data}')
+        # if need to perform 2-step verification
         if data.get('data', {}).get('code') == 701 and data.get('data', {}).get('status') == 7:
             sign_key = data.get('data',{}).get('sign_key')
             start, stop = data.get('data',{}).get('sign_check','0-0').split('-')
@@ -81,23 +88,28 @@ def upload_file(local_file, pid, **kwargs):
             )
             if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
                 raise ValueError(f'{data}')
-            if data.get('data', {}).get('status') == 2:
-                log_info('秒传成功')
-            else:
-                log_info('无法秒传')
-                data = upload_get_token()
-                if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
-                    raise ValueError(f'{data}')
-                endpoint = data.get('data', {}).get('endpoint')
-                access_key_id = data.get('data', {}).get('AccessKeyId')
-                access_key_secret = data.get('data', {}).get('AccessKeySecret')
-                security_token = data.get('data', {}).get('SecurityToken')
-                expiration = data.get('data', {}).get('Expiration')
-                # 对象存储上传
+        # if can't rapid upload
+        if data.get('data', {}).get('status') == 1:
+            log_info(f'无法秒传 {file_name}')
+            data = upload_get_token()
+            if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
+                raise ValueError(f'{data}')
+            endpoint = data.get('data', {}).get('endpoint')
+            access_key_id = data.get('data', {}).get('AccessKeyId')
+            access_key_secret = data.get('data', {}).get('AccessKeySecret')
+            security_token = data.get('data', {}).get('SecurityToken')
+            expiration = data.get('data', {}).get('Expiration')
+            # TODO: 上传oss
+        # if can rapid upload
+        elif data.get('data', {}).get('status') == 2:
+            log_info(f'成功秒传 {file_name}')
+        else:
+            raise ValueError(f'{data}')
     except Exception as e:
         log_error(e)
 
 
+@log_caller
 def upload_file_iter(local_file, remote_path, **kwargs):
     remote_file = Path(remote_path) / Path(local_file).name
 
@@ -111,6 +123,7 @@ def upload_file_iter(local_file, remote_path, **kwargs):
     return ufile_id
 
 
+@log_caller
 def upload_recursive(local_path, pid, **kwargs):
     try:
         p = Path(local_path)

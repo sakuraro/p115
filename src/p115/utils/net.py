@@ -10,17 +10,27 @@ def base_request(method: str, url: str, **kwargs):
     with open('/tmp/p115_api.lock', 'a') as f:
         try:
             fcntl.flock(f, fcntl.LOCK_EX)
-            log_debug(f'request: {method} {url} {kwargs}')
+            log_debug(
+                f'请求 {method} {url}\n'
+                f'\t请求参数 {kwargs}'
+            )
             try:
                 resp = requests.request(method=method, url=url, **kwargs)
                 data = resp.json()
             except RequestException:
-                log_error(f'RequestException: request: {method} {url} {kwargs}')
+                log_error(
+                    f'RequestException\n'
+                    f'\t请求 {method} {url}\n'
+                    f'\t请求参数 {kwargs}'
+                )
                 data = {}
             except ValueError:
-                log_error(f'ValueError: response: {resp.text}')
+                log_error(
+                    f'ValueError\n'
+                    f'\t响应内容 {resp.text}'
+                )
                 data = {}
-            log_debug(f'response: {data}')
+            log_debug(f'响应 {data}')
             return data
 
         finally:
