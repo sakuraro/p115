@@ -38,16 +38,21 @@ def existed(remote_path, **kwargs):
 
 @log_caller
 def mkdir(pid, name, **kwargs):
-    ufile_id = None
-    data = fold_add(pid, file_name=name, **kwargs)
-    if data.get('code') == 0 and data.get('state') == True:
-        ufile_id = data.get('data', {}).get('file_id')
-    # 目录已存在
-    elif data.get('code') == 20004 and data.get('state') == False:
-        ufiles = ls(pid)
-        for ufile in ufiles:
-            if ufile.get('fc') == '0' and ufile.get('fn') == name:
-                ufile_id = ufile.get('fid')
+    try:
+        data = fold_add(pid, file_name=name, **kwargs)
+        if data.get('code') == 0 and data.get('state') == True:
+            ufile_id = data.get('data', {}).get('file_id')
+        # folder already exists remotely
+        elif data.get('code') == 20004 and data.get('state') == False:
+            ufiles = ls(pid)
+            for ufile in ufiles:
+                if ufile.get('fc') == '0' and ufile.get('fn') == name:
+                    ufile_id = ufile.get('fid')
+        else:
+            raise ValueError(f'{data}')
+    except Exception as e:
+        log_error(e)
+        ufile_id = None
 
     return ufile_id
 

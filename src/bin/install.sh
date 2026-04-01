@@ -1,6 +1,7 @@
 #!/bin/bash
 
-script_path=$(cd "$(dirname "$(readlink -f "$0")")";pwd)
+script_path=$(dirname "$(readlink -f "$0")")
+
 cd "$script_path/../../"
 mkdir data
 python -m venv .venv
