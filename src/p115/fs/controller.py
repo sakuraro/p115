@@ -30,6 +30,7 @@ def existed(remote_path, **kwargs):
             raise ValueError(f'{data}')
         ufile_id = data.get('data', {}).get('file_id')
     except Exception as e:
+        log_error(f'{data}')
         ufile_id = None
 
     return ufile_id
