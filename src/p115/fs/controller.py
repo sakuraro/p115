@@ -2,6 +2,7 @@ from pathlib import Path
 
 from p115.utils.log import log_info, log_error, log_caller
 from p115.utils.file import get_name, get_size, calc_hash, calc_header_hash
+from p115.utils.oss import AliyunOSS
 from .api import ufile_list, fold_get_info_by_path, fold_add, upload_init, upload_get_token
 
 
@@ -83,6 +84,8 @@ def upload_file(local_file, pid, **kwargs):
         data = upload_init(file_name, file_size, target, file_hash)
         if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
             raise ValueError(f'{data}')
+        pick_code = data.get('data', {}).get('pick_code')
+
         # if need to perform 2-step verification
         if data.get('data', {}).get('code') == 701 and data.get('data', {}).get('status') == 7:
             sign_key = data.get('data',{}).get('sign_key')
@@ -94,9 +97,15 @@ def upload_file(local_file, pid, **kwargs):
             )
             if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
                 raise ValueError(f'{data}')
+
         # if can't rapid upload
         if data.get('data', {}).get('status') == 1:
             log_info(f'无法秒传 {file_name}')
+            bucket = data.get('data', {}).get('bucket')
+            key = data.get('data', {}).get('object')
+            callback = data.get('data', {}).get('callback', {}).get('callback')
+            callback_var = data.get('data', {}).get('callback', {}).get('callback_var')
+
             data = upload_get_token()
             if not (data.get('code') == 0 and data.get('state') == True and data.get('data') != []):
                 raise ValueError(f'{data}')
@@ -105,7 +114,9 @@ def upload_file(local_file, pid, **kwargs):
             access_key_secret = data.get('data', {}).get('AccessKeySecret')
             security_token = data.get('data', {}).get('SecurityToken')
             expiration = data.get('data', {}).get('Expiration')
-            # TODO: 上传oss
+            # TODO: 断点续传
+            aliyun_oss = AliyunOSS(endpoint, access_key_id, access_key_secret, security_token, expiration)
+            result = aliyun_oss.upload(local_file, bucket, key, callback, callback_var)
         # if can rapid upload
         elif data.get('data', {}).get('status') == 2:
             log_info(f'成功秒传 {file_name}')
@@ -135,13 +146,15 @@ def upload_recursive(local_path, pid, **kwargs):
         p = Path(local_path)
         # if path doesn't exist locally or pid is None
         if not p.exists() or not pid:
-            raise ValueError(f'upload_recursive params: {local_path} {pid}')
+            raise ValueError(f'{local_path} {pid}')
         # if path points to folder locally
         elif p.is_dir():
             ufile_id = mkdir(pid, p.name)
+            if not ufile_id:
+                raise ValueError(f'{pid} {p.name}')
             ufiles = ls(ufile_id)
             for lpath in p.iterdir():
-                # except the file in the folder exist remotely
+                # except files in the folder exist remotely
                 if not (lpath.is_file() and [ufile for ufile in ufiles if ufile.get('fc') == '1' and ufile.get('sha1') == calc_hash(str(lpath))] != []):
                     upload_recursive(str(lpath), ufile_id)
         # if path points to file locally
