@@ -75,7 +75,7 @@ def mkdir_iter(remote_path, **kwargs):
 def upload_file(local_file, pid, **kwargs):
     try:
         if not pid:
-            raise ValueError(f'upload_file params: {local_file} {pid}')
+            raise ValueError(f'{local_file} {pid}')
         target = 'U_1_' + pid
         file_name = get_name(local_file)
         file_size = get_size(local_file)

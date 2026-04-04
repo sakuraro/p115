@@ -20,7 +20,7 @@ def calc_hash(file_path, offset=0, size=0):
             sha1.update(chunk)
         chunk = f.read(size%4096)
         sha1.update(chunk)
-    return sha1.hexdigest()
+    return sha1.hexdigest().upper()
 
 
 def calc_header_hash(file_path):
